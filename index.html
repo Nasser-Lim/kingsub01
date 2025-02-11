@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { margin: 0; padding: 0; width: 1920px; height: 1080px; background: rgb(45, 45, 45); }
+        #container { position: relative; width: 1920px; height: 1080px; }
+        #background { width: 1920px; height: 1080px; object-fit: cover; }
+        @font-face {
+            font-family: 'YoonGothic';
+            src: url('./YoonGothicPro790.otf') format('opentype');
+        }
+        #subtitle {
+            position: absolute;
+            left: 1150px;
+            top: 920px;
+            transform: translate(-50%, -50%) scaleX(0.85); /* 장평 */
+            color: black;
+            font-size: 90px;
+            font-weight: bold;
+            font-family: 'YoonGothic', sans-serif;
+            text-align: left;
+            width: 2100px;
+            letter-spacing: -5px;  /* 자간 */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <img id="background" src="./background.png">
+        <div id="subtitle"></div>
+    </div>
+
+    <script>
+        const SHEET_ID = '13nIkOkiS0eVvjIy6GN8tSmMVoXIjyhxAL_jDHbNJI9k';
+        const TAB_NAME = '킹자막기v1.0';
+        const API_KEY = 'AIzaSyBloGeLveVT_ORsJDWIXWe0PqCWCsnuKOE';
+
+        let subtitles = [];
+        let currentIndex = 0;
+        let currentInterval = 2;
+        let intervalId;
+
+        async function loadSubtitles() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${TAB_NAME}!B2:C?key=${API_KEY}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const newInterval = parseInt(data.values[0][0]);
+                
+                if (newInterval && newInterval !== currentInterval) {
+                    currentInterval = newInterval;
+                    clearInterval(intervalId);
+                    intervalId = setInterval(updateSubtitle, currentInterval * 1000);
+                    console.log('New interval set:', currentInterval, 'seconds');
+                }
+
+                subtitles = data.values.slice(2)
+                    .filter(row => row[1] === 'ok')
+                    .map(row => row[0])
+                    .filter(text => text?.trim() !== '');
+                console.log('Subtitles reloaded:', subtitles);
+            } catch (error) {
+                console.error('Error loading subtitles:', error);
+            }
+        }
+
+        function updateSubtitle() {
+            loadSubtitles().then(() => {
+                if (subtitles.length > 0) {
+                    document.getElementById('subtitle').textContent = subtitles[currentIndex];
+                    currentIndex = (currentIndex + 1) % subtitles.length;
+                }
+            });
+        }
+
+        function setSubtitlePosition(x, y) {
+            const subtitle = document.getElementById('subtitle');
+            subtitle.style.left = x + 'px';
+            subtitle.style.top = y + 'px';
+        }
+
+        function setSubtitleFont(fontFamily) {
+            document.getElementById('subtitle').style.fontFamily = fontFamily;
+        }
+
+        // 초기 실행
+        updateSubtitle();
+        intervalId = setInterval(updateSubtitle, currentInterval * 1000);
+    </script>
+</body>
+</html>
