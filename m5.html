@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="UTF-8">
+   <style>
+       html, body { 
+           overflow: hidden;
+       }
+       body { 
+           margin: 0; 
+           padding: 0; 
+           width: 1920px; 
+           height: 1080px; 
+           background: transparent;
+       }
+       #container { 
+           position: relative; 
+           width: 1920px; 
+           height: 1080px; 
+       }
+       #background { 
+           width: 1920px; 
+           height: 1080px; 
+           object-fit: cover;
+           display: none;
+       }
+       @font-face {
+           font-family: 'YoonGothic';
+           src: url('./YoonGothicPro790.otf') format('opentype');
+       }
+       #subtitle {
+           position: absolute;
+           left: 1150px;
+           top: 920px;
+           transform: translate(-50%, -50%) scaleX(0.85);
+           color: black;
+           font-size: 90px;
+           font-weight: bold;
+           font-family: 'YoonGothic', sans-serif;
+           text-align: left;
+           width: 2100px;
+           letter-spacing: -5px;
+       }
+   </style>
+</head>
+<body>
+   <div id="container">
+       <div id="subtitle"></div>
+   </div>
+   <script type="module">
+       console.log('Script started'); // 디버깅 로그 1
+
+       // config.js에서 환경 변수 가져오기
+       import { SHEET_ID, TAB_NAME, API_KEY } from './config.js';
+       
+       console.log('Imported values:', { SHEET_ID, TAB_NAME, API_KEY }); // 디버깅 로그 2
+       
+       let subtitles = [];
+       let currentIndex = 0;
+       let currentInterval = 2;
+       let intervalId;
+
+       async function loadSubtitles() {
+           console.log('loadSubtitles called'); // 디버깅 로그 3
+           
+           const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${TAB_NAME}!R2:S?key=${API_KEY}`;
+           console.log('Fetching from URL:', url); // 디버깅 로그 4
+           
+           try {
+               const response = await fetch(url);
+               console.log('Response received:', response); // 디버깅 로그 5
+               
+               const data = await response.json();
+               console.log('Parsed data:', data); // 디버깅 로그 6
+               
+               const newInterval = parseInt(data.values[0][0]);
+               console.log('New interval:', newInterval); // 디버깅 로그 7
+               
+               if (newInterval && newInterval !== currentInterval) {
+                   currentInterval = newInterval;
+                   clearInterval(intervalId);
+                   intervalId = setInterval(updateSubtitle, currentInterval * 1000);
+                   console.log('Interval updated to:', currentInterval, 'seconds'); // 디버깅 로그 8
+               }
+
+               subtitles = data.values.slice(2)
+                   .filter(row => row[1] === 'ok')
+                   .map(row => row[0])
+                   .filter(text => text?.trim() !== '');
+               console.log('Processed subtitles:', subtitles); // 디버깅 로그 9
+           } catch (error) {
+               console.error('Error in loadSubtitles:', error); // 디버깅 로그 10
+           }
+       }
+
+       function updateSubtitle() {
+           console.log('updateSubtitle called'); // 디버깅 로그 11
+           
+           loadSubtitles().then(() => {
+               if (subtitles.length > 0) {
+                   const newText = subtitles[currentIndex];
+                   console.log('Setting new subtitle:', newText); // 디버깅 로그 12
+                   
+                   document.getElementById('subtitle').textContent = newText;
+                   currentIndex = (currentIndex + 1) % subtitles.length;
+                   console.log('Updated currentIndex to:', currentIndex); // 디버깅 로그 13
+               } else {
+                   console.log('No subtitles available'); // 디버깅 로그 14
+               }
+           });
+       }
+
+       function setSubtitlePosition(x, y) {
+           const subtitle = document.getElementById('subtitle');
+           subtitle.style.left = x + 'px';
+           subtitle.style.top = y + 'px';
+           console.log('Subtitle position set to:', {x, y}); // 디버깅 로그 15
+       }
+
+       function setSubtitleFont(fontFamily) {
+           document.getElementById('subtitle').style.fontFamily = fontFamily;
+           console.log('Subtitle font set to:', fontFamily); // 디버깅 로그 16
+       }
+
+       // 초기 실행
+       console.log('Starting initial execution'); // 디버깅 로그 17
+       updateSubtitle();
+       intervalId = setInterval(updateSubtitle, currentInterval * 1000);
+       console.log('Initial setup complete'); // 디버깅 로그 18
+   </script>
+</body>
+</html>
